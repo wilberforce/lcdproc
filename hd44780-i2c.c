@@ -21,7 +21,7 @@
    in LCDd.conf we then need to define
     i2c_line_RS=0x01
     i2c_line_RW=0x02
-	i2c_line_EN=0x04
+    i2c_line_EN=0x04
     i2c_line_BL=0x80
 	i2c_line_D4=0x10
     i2c_line_D5=0x20
@@ -195,14 +195,14 @@ hd_init_i2c(Driver *drvthis)
 	report(RPT_INFO, "HD44780: I2C: Pin D7 mapped to 0x%02X", p->i2c_line_D7);
 	report(RPT_INFO, "HD44780: I2C: MODE IS %d", p->i2c_mode);
 	
-    int enableLines = EN;
+    int enableLines = p->i2c_line_EN;
 	char device[256] = DEFAULT_DEVICE;
 #ifdef HAVE_DEV_IICBUS_IIC_H
 	struct iiccmd cmd;
 	bzero(&cmd, sizeof(cmd));
 #endif
 
-	p->backlight_bit = BL;
+	p->backlight_bit = p->i2c_line_BL;
 
 	/* READ CONFIG FILE */
 
@@ -347,7 +347,7 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
 	if (flags == RS_INSTR)
 		portControl = 0;
 	else //if (flags == RS_DATA)
-		portControl = RS;
+		portControl = p->i2c_line_RS;
 
 	portControl |= p->backlight_bit;
 
@@ -379,9 +379,9 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state)
 {
 	// ORG
-	// p->backlight_bit = ((!p->have_backlight||state) ? 0 : BL);
+	// p->backlight_bit = ((!p->have_backlight||state) ? 0 : p->i2c_line_BL);
 
-	p->backlight_bit = ((p->have_backlight && state) ? BL : 0);
+	p->backlight_bit = ((p->have_backlight && state) ? p->i2c_line_BL : 0);
 	
 	i2c_out(p, p->backlight_bit);
 }
