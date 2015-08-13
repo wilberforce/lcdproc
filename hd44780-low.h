@@ -158,7 +158,7 @@ typedef struct hd44780_private_data {
 #ifdef HAVE_I2C
 	/* libi2c-based connection types */
 	
-	int i2c_mode;
+	int i2c_backlight_invert;
 	int i2c_line_RS;
 	int i2c_line_RW;
 	int i2c_line_EN;

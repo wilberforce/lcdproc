@@ -12,9 +12,21 @@
  *		  1998 Richard Rognlie <rrognlie@gamerz.net>
  *		  1997 Matthias Prinke <m.prinke@trashcan.mcnet.de>
  *
+ * The connections are:
+ * PCF8574AP  Bit	LCD
+ * P0 (4)	  0x01  D4 (11)
+ * P1 (5)	  0x02  D5 (12)
+ * P2 (6)	  0x04  D6 (13)
+ * P3 (7)	  0x08  D7 (14)
+ * P4 (9)	  0x10  RS (4)
+ * P5 (10)	  0x20  RW (5)
+ * P6 (11)	  0x40  EN (6)
+ * P7 (12)	  0x80  /backlight (optional, active-low)
+ *
+ * Configuration:
  \verbatim
-   Info for 4bit mode wiring example:
-   FTDI chip: P0 P1 P2 P3 P4 P5 P6 P7
+   alternative wiring example:
+   PCF8574AP: P0 P1 P2 P3 P4 P5 P6 P7
               |  |  |  |  |  |  |  |
    HD44780:   RS RW EN BL D4 D5 D6 D7
    
@@ -27,20 +39,9 @@
     i2c_line_D5=0x20
     i2c_line_D6=0x40
     i2c_line_D7=0x80
-    i2c_mode=1
+    i2c_backlight_invert=1
 \endverbatim
 
- * The swapped connections are:
- * PCF8574AP  ALT		  LCD
- * P0 (4)	  P4 (9)      D4 (11)
- * P1 (5)	  P5 (10)     D5 (12)
- * P2 (6)	  P6 (11)     D6 (13)
- * P3 (7)	  P7 (12)     D7 (14)
- * P4 (9)	  P0 (4)      RS (4)
- * P5 (10)	  P1 (5)      RW (5)
- * P6 (11)	  P2 (6)      EN (6)
- * P7 (12)	  P3 (7)      backlight 
- * ORG (optional, active-low), ALT active-high
  *
  * Configuration:
  * device=/dev/i2c-0   # the device file of the i2c bus
@@ -102,22 +103,16 @@ void i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state);
 void i2c_HD44780_close(PrivateData *p);
 
-/* OLD
 #define RS	0x10
 #define RW	0x20
 #define EN	0x40
 #define BL	0x80
-*/
-// ALT
-#define RS	0x01
-#define RW	0x02
-#define EN	0x04
-#define BL	0x08
-#define D4	0x10
-#define D5	0x20
-#define D6	0x40
-#define D7	0x80
-#define MODE 1
+#define D4	0x01
+#define D5	0x02
+#define D6	0x04
+#define D7	0x08
+#define BL_INVERT  0
+
 
 // note that the above bits are all meant for the data port of PCF8574
 
@@ -175,7 +170,7 @@ hd_init_i2c(Driver *drvthis)
 	PrivateData *p = (PrivateData*) drvthis->private_data;
 	HD44780_functions *hd44780_functions = p->hd44780_functions;
 
-	p->i2c_mode = drvthis->config_get_int(drvthis->name, "i2c_mode", 0, MODE ); //boolean?
+	p->i2c_backlight_invert = drvthis->config_get_bool(drvthis->name, "backlight_invert", 0, BL_INVERT);
     p->i2c_line_RS = drvthis->config_get_int(drvthis->name, "i2c_line_RS", 0, RS);
     p->i2c_line_RW = drvthis->config_get_int(drvthis->name, "i2c_line_RW", 0, RW);
     p->i2c_line_EN = drvthis->config_get_int(drvthis->name, "i2c_line_EN", 0, EN);
@@ -185,6 +180,7 @@ hd_init_i2c(Driver *drvthis)
     p->i2c_line_D6 = drvthis->config_get_int(drvthis->name, "i2c_line_D6", 0, D6);
     p->i2c_line_D7 = drvthis->config_get_int(drvthis->name, "i2c_line_D7", 0, D7);
 	
+	report(RPT_INFO, "HD44780: I2C: Init using D4 and D5, and or'd lines, invert", p->i2c_line_RS);
 	report(RPT_INFO, "HD44780: I2C: Pin RS mapped to 0x%02X", p->i2c_line_RS);
 	report(RPT_INFO, "HD44780: I2C: Pin RW mapped to 0x%02X", p->i2c_line_RW);
 	report(RPT_INFO, "HD44780: I2C: Pin EN mapped to 0x%02X", p->i2c_line_EN);
@@ -193,10 +189,9 @@ hd_init_i2c(Driver *drvthis)
 	report(RPT_INFO, "HD44780: I2C: Pin D5 mapped to 0x%02X", p->i2c_line_D5);
 	report(RPT_INFO, "HD44780: I2C: Pin D6 mapped to 0x%02X", p->i2c_line_D6);
 	report(RPT_INFO, "HD44780: I2C: Pin D7 mapped to 0x%02X", p->i2c_line_D7);
-	report(RPT_INFO, "HD44780: I2C: MODE IS %d", p->i2c_mode);
+	report(RPT_INFO, "HD44780: I2C: Invert Backlight %d", p->i2c_backlight_invert);
 	
-    int enableLines = p->i2c_line_EN;
-	char device[256] = DEFAULT_DEVICE;
+    char device[256] = DEFAULT_DEVICE;
 #ifdef HAVE_DEV_IICBUS_IIC_H
 	struct iiccmd cmd;
 	bzero(&cmd, sizeof(cmd));
@@ -263,32 +258,32 @@ hd_init_i2c(Driver *drvthis)
 	OLD   (FUNCSET | IF_8BIT) >> 4 0x03
 	ALT    (FUNCSET | IF_8BIT)     0x30
 	 */
-	i2c_out(p, 0x30);
+	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
 
-	i2c_out(p, enableLines | 0x30);
+	i2c_out(p, p->i2c_line_EN | p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x30);
+	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	hd44780_functions->uPause(p, 15000);
 
-	i2c_out(p, enableLines | 0x30);
+	i2c_out(p, p->i2c_line_EN | p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x30);
+	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	hd44780_functions->uPause(p, 5000);
 
-	i2c_out(p, enableLines | 0x30);
+	i2c_out(p, p->i2c_line_EN | p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x30);
+	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	hd44780_functions->uPause(p, 100);
 
-	i2c_out(p, enableLines | 0x30);
+	i2c_out(p, p->i2c_line_EN | p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x30);
+	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	hd44780_functions->uPause(p, 100);
 
 	// now in 8-bit mode...  set 4-bit mode
@@ -296,14 +291,14 @@ hd_init_i2c(Driver *drvthis)
 	OLD   (FUNCSET | IF_4BIT) >> 4 0x02
 	ALT   (FUNCSET | IF_4BIT)      0x20
 	*/
-	i2c_out(p, 0x20);
+	i2c_out(p, p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
 
-	i2c_out(p, enableLines | 0x20);
+	i2c_out(p, p->i2c_line_EN | p->i2c_line_D5);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x20);
+	i2c_out(p, p->i2c_line_D5);
 	hd44780_functions->uPause(p, 100);
 
 	// Set up two-line, small character (5x8) mode
@@ -336,14 +331,17 @@ i2c_HD44780_close(PrivateData *p) {
 void
 i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flags, unsigned char ch)
 {
-	unsigned char enableLines = 0, portControl = 0;
-	//ORG
-	//unsigned char h = (ch >> 4) & 0x0f;     // high and low nibbles
-	//unsigned char l = ch & 0x0f;
-	// ALT
-    unsigned char h = ch & 0xf0;     // high and low nibbles
-    unsigned char l = (ch << 4) & 0xf0;	
-
+	unsigned char portControl = 0;
+	unsigned char h=0;
+	unsigned char l=0;
+	if( ch & 0x80 ) h |= p->i2c_line_D7;
+	if( ch & 0x40 ) h |= p->i2c_line_D6;
+	if( ch & 0x20 ) h |= p->i2c_line_D5;
+	if( ch & 0x10 ) h |= p->i2c_line_D4;
+	if( ch & 0x08 ) l |= p->i2c_line_D7;
+	if( ch & 0x04 ) l |= p->i2c_line_D6;
+	if( ch & 0x02 ) l |= p->i2c_line_D5;
+	if( ch & 0x01 ) l |= p->i2c_line_D4;
 	if (flags == RS_INSTR)
 		portControl = 0;
 	else //if (flags == RS_DATA)
@@ -351,12 +349,10 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
 
 	portControl |= p->backlight_bit;
 
-	enableLines = EN;
-
 	i2c_out(p, portControl | h);
 	if (p->delayBus)
 		p->hd44780_functions->uPause(p, 1);
-	i2c_out(p, enableLines | portControl | h);
+	i2c_out(p, p->i2c_line_EN | portControl | h);
 	if (p->delayBus)
 		p->hd44780_functions->uPause(p, 1);
 	i2c_out(p, portControl | h);
@@ -364,7 +360,7 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
 	i2c_out(p, portControl | l);
 	if (p->delayBus)
 		p->hd44780_functions->uPause(p, 1);
-	i2c_out(p, enableLines | portControl | l);
+	i2c_out(p, p->i2c_line_EN | portControl | l);
 	if (p->delayBus)
 		p->hd44780_functions->uPause(p, 1);
 	i2c_out(p, portControl | l);
@@ -378,10 +374,10 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
  */
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state)
 {
-	// ORG
-	// p->backlight_bit = ((!p->have_backlight||state) ? 0 : p->i2c_line_BL);
-
-	p->backlight_bit = ((p->have_backlight && state) ? p->i2c_line_BL : 0);
+	if ( p->i2c_backlight_invert == 0 )
+		p->backlight_bit = ((!p->have_backlight||state) ? 0 : p->i2c_line_BL);
+	else // Inverted backlight - npn transistor
+		p->backlight_bit = ((p->have_backlight && state) ? p->i2c_line_BL : 0);
 	
 	i2c_out(p, p->backlight_bit);
 }
