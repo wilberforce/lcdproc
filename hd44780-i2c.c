@@ -35,7 +35,7 @@
     i2c_line_RW=0x02
     i2c_line_EN=0x04
     i2c_line_BL=0x80
-	i2c_line_D4=0x10
+    i2c_line_D4=0x10
     i2c_line_D5=0x20
     i2c_line_D6=0x40
     i2c_line_D7=0x80
@@ -112,8 +112,6 @@ void i2c_HD44780_close(PrivateData *p);
 #define D6	0x04
 #define D7	0x08
 #define BL_INVERT  0
-
-
 // note that the above bits are all meant for the data port of PCF8574
 
 #define I2C_ADDR_MASK 0x7f
@@ -170,15 +168,15 @@ hd_init_i2c(Driver *drvthis)
 	PrivateData *p = (PrivateData*) drvthis->private_data;
 	HD44780_functions *hd44780_functions = p->hd44780_functions;
 
-	p->i2c_backlight_invert = drvthis->config_get_bool(drvthis->name, "backlight_invert", 0, BL_INVERT);
-    p->i2c_line_RS = drvthis->config_get_int(drvthis->name, "i2c_line_RS", 0, RS);
-    p->i2c_line_RW = drvthis->config_get_int(drvthis->name, "i2c_line_RW", 0, RW);
-    p->i2c_line_EN = drvthis->config_get_int(drvthis->name, "i2c_line_EN", 0, EN);
-    p->i2c_line_BL = drvthis->config_get_int(drvthis->name, "i2c_line_BL", 0, BL);
-    p->i2c_line_D4 = drvthis->config_get_int(drvthis->name, "i2c_line_D4", 0, D4);
-    p->i2c_line_D5 = drvthis->config_get_int(drvthis->name, "i2c_line_D5", 0, D5);
-    p->i2c_line_D6 = drvthis->config_get_int(drvthis->name, "i2c_line_D6", 0, D6);
-    p->i2c_line_D7 = drvthis->config_get_int(drvthis->name, "i2c_line_D7", 0, D7);
+	p->i2c_backlight_invert = drvthis->config_get_bool(drvthis->name, "BacklightInvert", 0, BL_INVERT);
+	p->i2c_line_RS = drvthis->config_get_int(drvthis->name, "i2c_line_RS", 0, RS);
+	p->i2c_line_RW = drvthis->config_get_int(drvthis->name, "i2c_line_RW", 0, RW);
+	p->i2c_line_EN = drvthis->config_get_int(drvthis->name, "i2c_line_EN", 0, EN);
+	p->i2c_line_BL = drvthis->config_get_int(drvthis->name, "i2c_line_BL", 0, BL);
+	p->i2c_line_D4 = drvthis->config_get_int(drvthis->name, "i2c_line_D4", 0, D4);
+	p->i2c_line_D5 = drvthis->config_get_int(drvthis->name, "i2c_line_D5", 0, D5);
+	p->i2c_line_D6 = drvthis->config_get_int(drvthis->name, "i2c_line_D6", 0, D6);
+	p->i2c_line_D7 = drvthis->config_get_int(drvthis->name, "i2c_line_D7", 0, D7);
 	
 	report(RPT_INFO, "HD44780: I2C: Init using D4 and D5, and or'd lines, invert", p->i2c_line_RS);
 	report(RPT_INFO, "HD44780: I2C: Pin RS mapped to 0x%02X", p->i2c_line_RS);
@@ -255,8 +253,6 @@ hd_init_i2c(Driver *drvthis)
 	// powerup the lcd now
 	/* We'll now send 0x03 a couple of times,
 	 * which is in fact (FUNCSET | IF_8BIT) >> 4
-	OLD   (FUNCSET | IF_8BIT) >> 4 0x03
-	ALT    (FUNCSET | IF_8BIT)     0x30
 	 */
 	i2c_out(p, p->i2c_line_D4 | p->i2c_line_D5);
 	if (p->delayBus)
@@ -378,6 +374,5 @@ void i2c_HD44780_backlight(PrivateData *p, unsigned char state)
 		p->backlight_bit = ((!p->have_backlight||state) ? 0 : p->i2c_line_BL);
 	else // Inverted backlight - npn transistor
 		p->backlight_bit = ((p->have_backlight && state) ? p->i2c_line_BL : 0);
-	
 	i2c_out(p, p->backlight_bit);
 }
