@@ -85,10 +85,10 @@ void i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state);
 void i2c_HD44780_close(PrivateData *p);
 
-#define RS	0x10
-#define RW	0x20
-#define EN	0x40
-#define BL	0x80
+#define RS	0x01
+#define RW	0x02
+#define EN	0x04
+#define BL	0x08
 // note that the above bits are all meant for the data port of PCF8574
 
 #define I2C_ADDR_MASK 0x7f
@@ -210,43 +210,43 @@ hd_init_i2c(Driver *drvthis)
 	// powerup the lcd now
 	/* We'll now send 0x03 a couple of times,
 	 * which is in fact (FUNCSET | IF_8BIT) >> 4 */
-	i2c_out(p, 0x03);
+	i2c_out(p, 0x30);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
 
-	i2c_out(p, enableLines | 0x03);
+	i2c_out(p, enableLines | 0x30);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x03);
+	i2c_out(p, 0x30);
 	hd44780_functions->uPause(p, 15000);
 
-	i2c_out(p, enableLines | 0x03);
+	i2c_out(p, enableLines | 0x30);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x03);
+	i2c_out(p, 0x30);
 	hd44780_functions->uPause(p, 5000);
 
-	i2c_out(p, enableLines | 0x03);
+	i2c_out(p, enableLines | 0x30);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x03);
+	i2c_out(p, 0x30);
 	hd44780_functions->uPause(p, 100);
 
-	i2c_out(p, enableLines | 0x03);
+	i2c_out(p, enableLines | 0x30);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x03);
+	i2c_out(p, 0x30);
 	hd44780_functions->uPause(p, 100);
 
 	// now in 8-bit mode...  set 4-bit mode
-	i2c_out(p, 0x02);
+	i2c_out(p, 0x20);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
 
-	i2c_out(p, enableLines | 0x02);
+	i2c_out(p, enableLines | 0x20);
 	if (p->delayBus)
 		hd44780_functions->uPause(p, 1);
-	i2c_out(p, 0x02);
+	i2c_out(p, 0x20);
 	hd44780_functions->uPause(p, 100);
 
 	// Set up two-line, small character (5x8) mode
@@ -280,8 +280,8 @@ void
 i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flags, unsigned char ch)
 {
 	unsigned char enableLines = 0, portControl = 0;
-	unsigned char h = (ch >> 4) & 0x0f;     // high and low nibbles
-	unsigned char l = ch & 0x0f;
+    unsigned char h = ch & 0xf0;     // high and low nibbles
+    unsigned char l = (ch << 4) & 0xf0;	
 
 	if (flags == RS_INSTR)
 		portControl = 0;
@@ -317,7 +317,7 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
  */
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state)
 {
-	p->backlight_bit = ((!p->have_backlight||state) ? 0 : BL);
+	p->backlight_bit = ((p->have_backlight && state) ? BL : 0);
 
 	i2c_out(p, p->backlight_bit);
 }
