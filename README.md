@@ -2,19 +2,20 @@
 
 Update to lcdproc i2c to allow the pin configurations to be specified via LCDd.conf.
 
+# alternative wiring example #
 
 
-### Example LCDd.conf ###
+```
 
-`
-   alternative wiring example:
    PCF8574AP: P0 P1 P2 P3 P4 P5 P6 P7
               |  |  |  |  |  |  |  |
    HD44780:   RS RW EN BL D4 D5 D6 D7
 
+```
+
 LCDd.conf
 
-`
+```
 ## Hitachi HD44780 driver ##
 [HD44780]
 ConnectionType=i2c
@@ -36,7 +37,7 @@ i2c_line_D6=0x40
 i2c_line_D7=0x80
 Backlight=yes
 BacklightInvert=yes
-`
+```
 
 The Backlight Invert is used if a 0 turns the backlight on, and 1 turns it off, i.e. npn
  transistor
