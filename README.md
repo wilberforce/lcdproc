@@ -41,3 +41,6 @@ BacklightInvert=yes
 
 The Backlight Invert is used if a 0 turns the backlight on, and 1 turns it off, i.e. npn
  transistor
+
+See discussion here:
+http://sourceforge.net/p/lcdproc/discussion/312/thread/00298b2f/
