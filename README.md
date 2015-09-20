@@ -19,7 +19,7 @@ LCDd.conf
 ## Hitachi HD44780 driver ##
 [HD44780]
 ConnectionType=i2c
-Device=/dev/i2c-pi
+Device=/dev/i2c-1
 Port=0x27
 Backlight=yes
 Size=20x4
